@@ -14,6 +14,12 @@ import os
 
 load_dotenv()
 
+if "initialized" not in st.session_state:
+    st.session_state.initialized = True
+    st.session_state.chain = None
+    st.session_state.chat_history = []
+    st.session_state.messages = []
+
 st.set_page_config(page_title="JD Analyzer", page_icon="📄", layout="wide")
 st.title("📄 JD Analyzer")
 st.subheader("Upload resumes and chat with them!")
@@ -58,15 +64,16 @@ with st.sidebar:
             # Embed + Store
             embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
             vectorstore = Chroma.from_documents(
-             chunks,
-            embeddings)
+            chunks,
+            embeddings,
+            collection_name=f"session_{id(st.session_state)}")
             
             # Build chain
             llm = ChatGroq(
                 model="llama-3.3-70b-versatile",
                 api_key=os.getenv("GROQ_API_KEY")
             )
-            retriever = vectorstore.as_retriever(search_kwargs={"k": 6})
+            retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
             
             prompt = ChatPromptTemplate.from_messages([
                 ("system", """You are an expert HR assistant analyzing resumes.
