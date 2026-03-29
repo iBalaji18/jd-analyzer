@@ -47,20 +47,25 @@ with st.sidebar:
     if st.button("Process Resumes") and uploaded_files:
         with st.spinner("Processing resumes..."):
             
-            # Save uploaded files temporarily
+            # After loading documents, add filename metadata
             all_documents = []
-            for uploaded_file in uploaded_files:
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                    tmp.write(uploaded_file.read())
-                    tmp_path = tmp.name
-                
-                loader = PyPDFLoader(tmp_path)
-                documents = loader.load()
-                all_documents.extend(documents)
+for uploaded_file in uploaded_files:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        tmp.write(uploaded_file.read())
+        tmp_path = tmp.name
+    
+    loader = PyPDFLoader(tmp_path)
+    documents = loader.load()
+    
+    # Add original filename to each chunk's metadata
+    for doc in documents:
+        doc.metadata["source_filename"] = uploaded_file.name
+    
+    all_documents.extend(documents)
             
             # Chunk
-            splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=150)
-            chunks = splitter.split_documents(all_documents)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=150)
+    chunks = splitter.split_documents(all_documents)
             
             # Embed + Store
             embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
@@ -78,10 +83,9 @@ with st.sidebar:
             
             prompt = ChatPromptTemplate.from_messages([
                 ("system", """You are an expert HR assistant analyzing resumes.
-Each resume in the context belongs to a different candidate.
-The candidate's name is always at the top of their resume.
-When answering, always identify each candidate by their full name.
-If a candidate's name is not clear, look for email or contact details to identify them.
+Each chunk has metadata showing which file it came from in 'source_filename'.
+Use the filename to identify candidates when their name is not clear in the text.
+Always identify each candidate by name before answering.
 Use only the context below to answer questions.
 If the answer is not in the context, say "I don't have enough information."
 
