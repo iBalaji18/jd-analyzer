@@ -68,20 +68,20 @@ for uploaded_file in uploaded_files:
     chunks = splitter.split_documents(all_documents)
             
             # Embed + Store
-            embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-            vectorstore = Chroma.from_documents(
+    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    vectorstore = Chroma.from_documents(
             chunks,
             embeddings,
             collection_name=f"session_{uuid.uuid4().hex}")
             
             # Build chain
-            llm = ChatGroq(
+    llm = ChatGroq(
                 model="llama-3.3-70b-versatile",
                 api_key=os.getenv("GROQ_API_KEY")
             )
-            retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
             
-            prompt = ChatPromptTemplate.from_messages([
+    prompt = ChatPromptTemplate.from_messages([
                 ("system", """You are an expert HR assistant analyzing resumes.
 Each chunk has metadata showing which file it came from in 'source_filename'.
 Use the filename to identify candidates when their name is not clear in the text.
@@ -96,12 +96,12 @@ Context: {context}
                 ("human", "{input}"),
             ])
             
-            document_chain = create_stuff_documents_chain(llm, prompt)
-            st.session_state.chain = create_retrieval_chain(retriever, document_chain)
-            st.session_state.chat_history = []
-            st.session_state.messages = []
+    document_chain = create_stuff_documents_chain(llm, prompt)
+    st.session_state.chain = create_retrieval_chain(retriever, document_chain)
+    st.session_state.chat_history = []
+    st.session_state.messages = []
             
-        st.success(f"✅ {len(uploaded_files)} resume(s) processed!")
+    st.success(f"✅ {len(uploaded_files)} resume(s) processed!")
 
 # Chat interface
 if st.session_state.chain:
