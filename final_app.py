@@ -58,10 +58,8 @@ with st.sidebar:
             # Embed + Store
             embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
             vectorstore = Chroma.from_documents(
-                chunks,
-                embeddings,
-                persist_directory="chroma_db"
-            )
+             chunks,
+            embeddings)
             
             # Build chain
             llm = ChatGroq(
