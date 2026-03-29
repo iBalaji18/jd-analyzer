@@ -47,45 +47,39 @@ with st.sidebar:
     if st.button("Process Resumes") and uploaded_files:
         with st.spinner("Processing resumes..."):
             
-            # After loading documents, add filename metadata
+            # Save uploaded files temporarily
             all_documents = []
-for uploaded_file in uploaded_files:
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        tmp.write(uploaded_file.read())
-        tmp_path = tmp.name
-    
-    loader = PyPDFLoader(tmp_path)
-    documents = loader.load()
-    
-    # Add original filename to each chunk's metadata
-    for doc in documents:
-        doc.metadata["source_filename"] = uploaded_file.name
-    
-    all_documents.extend(documents)
+            for uploaded_file in uploaded_files:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                    tmp.write(uploaded_file.read())
+                    tmp_path = tmp.name
+                
+                loader = PyPDFLoader(tmp_path)
+                documents = loader.load()
+                all_documents.extend(documents)
             
             # Chunk
-    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=150)
-    chunks = splitter.split_documents(all_documents)
+            splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=150)
+            chunks = splitter.split_documents(all_documents)
             
             # Embed + Store
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    vectorstore = Chroma.from_documents(
+            embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+            vectorstore = Chroma.from_documents(
             chunks,
             embeddings,
             collection_name=f"session_{uuid.uuid4().hex}")
             
             # Build chain
-    llm = ChatGroq(
+            llm = ChatGroq(
                 model="llama-3.3-70b-versatile",
                 api_key=os.getenv("GROQ_API_KEY")
             )
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
+            retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
             
-    prompt = ChatPromptTemplate.from_messages([
+            prompt = ChatPromptTemplate.from_messages([
                 ("system", """You are an expert HR assistant analyzing resumes.
-Each chunk has metadata showing which file it came from in 'source_filename'.
-Use the filename to identify candidates when their name is not clear in the text.
-Always identify each candidate by name before answering.
+Each document in the context has metadata showing which file it came from.
+Always mention the candidate's name when referring to their skills or experience.
 Use only the context below to answer questions.
 If the answer is not in the context, say "I don't have enough information."
 
@@ -96,12 +90,12 @@ Context: {context}
                 ("human", "{input}"),
             ])
             
-    document_chain = create_stuff_documents_chain(llm, prompt)
-    st.session_state.chain = create_retrieval_chain(retriever, document_chain)
-    st.session_state.chat_history = []
-    st.session_state.messages = []
+            document_chain = create_stuff_documents_chain(llm, prompt)
+            st.session_state.chain = create_retrieval_chain(retriever, document_chain)
+            st.session_state.chat_history = []
+            st.session_state.messages = []
             
-    st.success(f"✅ {len(uploaded_files)} resume(s) processed!")
+        st.success(f"✅ {len(uploaded_files)} resume(s) processed!")
 
 # Chat interface
 if st.session_state.chain:
