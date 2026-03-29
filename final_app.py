@@ -11,6 +11,7 @@ from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 import tempfile
 import os
+import uuid
 
 load_dotenv()
 
@@ -66,7 +67,7 @@ with st.sidebar:
             vectorstore = Chroma.from_documents(
             chunks,
             embeddings,
-            collection_name=f"session_{id(st.session_state)}")
+            collection_name=f"session_{uuid.uuid4().hex}")
             
             # Build chain
             llm = ChatGroq(
