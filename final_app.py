@@ -78,8 +78,10 @@ with st.sidebar:
             
             prompt = ChatPromptTemplate.from_messages([
                 ("system", """You are an expert HR assistant analyzing resumes.
-Each document in the context has metadata showing which file it came from.
-Always mention the candidate's name when referring to their skills or experience.
+Each resume in the context belongs to a different candidate.
+The candidate's name is always at the top of their resume.
+When answering, always identify each candidate by their full name.
+If a candidate's name is not clear, look for email or contact details to identify them.
 Use only the context below to answer questions.
 If the answer is not in the context, say "I don't have enough information."
 
